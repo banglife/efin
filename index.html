@@ -1,0 +1,319 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Final Aligned Show Me the Money</title>
+  <style>
+    body {
+      background-color: black;
+      color: white;
+      font-family: 'Courier New', monospace;
+      margin: 0;
+      height: 100vh;
+      display: flex;
+      justify-content: flex-start; /* stay on left */
+      align-items: center;         /* vertical centering */
+      padding-left: 4vw;
+    }
+
+    .container {
+      text-align: left;
+    }
+
+    .header {
+      font-size: 2rem;
+      font-weight: bold;
+    }
+
+    .subheader {
+      font-size: 1.2rem;
+      margin: 0.5rem 0 1rem 0;
+    }
+
+    .grids {
+      display: flex;
+      flex-direction: row;
+      gap: 4rem; /* spacing between "MONEY" and plot */
+      margin-top: 1rem;
+      align-items: flex-start; /* ✅ this prevents vertical stretch */
+    }
+
+    .money-grid {
+      display: grid;
+      grid-template-columns: repeat(30, 10px);
+      grid-template-rows: repeat(8, 10px);
+      gap: 2px;
+      height: auto;            /* ✅ don't over-reserve */
+      align-self: flex-start;  /* ✅ align naturally in flex container */
+    }
+
+    .plot-grid {
+      display: grid;
+      grid-template-columns: repeat(30, 10px);
+      grid-template-rows: repeat(20, 10px);
+      gap: 2px;
+      align-self: flex-start;  /* ✅ don't let plot grid stretch row height */
+    }
+
+    .pixel {
+      background-color: white;
+      /* opacity: 0.6; */
+    }
+
+    .highlight {
+      background-color: yellow;
+      animation: blink 0.5s infinite;
+    }
+
+    .trail {
+      background-color: white;
+      /* opacity: 0.6; */
+    }
+
+    @keyframes blink {
+      50% {
+        opacity: 0.2;
+      }
+    }
+
+
+    .off {
+      width: 10px;
+      height: 10px;
+      background-color: transparent;
+    }
+
+    /* @keyframes blink {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.2; }
+    } */
+
+    .terminal-line {
+      font-family: 'Courier New', monospace;
+      font-size: 1rem;
+      margin-top: 2rem;
+      white-space: nowrap;
+    }
+
+    .terminal-line-after {
+      font-family: 'Courier New', monospace;
+      font-size: 1rem;
+      margin-top: 0rem;
+      white-space: nowrap;
+    }
+
+    .terminal-prompt::after {
+      content: '';
+      display: inline-block;
+      width: 10px;
+      height: 1rem;
+      background-color: white;
+      margin-left: 5px;
+      animation: blinkCursor 1s step-end infinite;
+      vertical-align: bottom;
+    }
+
+    .money-wrapper {
+      display: flex;
+      flex-direction: column;    /* stack vertically */
+      align-items: flex-start;   /* left align with "M" */
+    }
+
+
+    @keyframes blinkCursor {
+      50% {
+        background-color: transparent;
+      }
+    }
+
+
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">TALK IS CHEAP</div>
+    <div class="subheader">SHOW ME THE</div>
+    <div class="grids">
+      <div class="money-wrapper">
+        <div class="money-grid" id="moneyGrid"></div>
+          <div class="terminal-line">
+            <span>&gt; grep 'alpha' PnL.log</span><span class="terminal-prompt"></span>
+          </div>
+          <!-- <div class="terminal-line-after">
+            <span>root@efin.ai</span><span class="terminal-prompt"></span>
+          </div> -->
+      </div>
+      <div class="plot-grid" id="plotGrid"></div>
+    </div>
+
+</div>
+
+
+
+
+
+<script>
+const moneyGrid = document.getElementById("moneyGrid");
+const plotGrid = document.getElementById("plotGrid");
+
+const fontRows = 8;
+const plotRows = 20;
+const cols = 30;
+let trail = [];  // 🔥 确保这一行在函数外
+
+// Create empty grids
+const moneyCells = [];
+const plotCells = [];
+
+for (let i = 0; i < fontRows * cols; i++) {
+  const div1 = document.createElement("div");
+  div1.className = "off";
+  moneyGrid.appendChild(div1);
+  moneyCells.push(div1);
+}
+
+for (let i = 0; i < plotRows * cols; i++) {
+  const div2 = document.createElement("div");
+  div2.className = "off";
+  plotGrid.appendChild(div2);
+  plotCells.push(div2);
+}
+
+function setMoneyPixel(x, y, type="pixel") {
+  const idx = y * cols + x;
+  if (moneyCells[idx]) moneyCells[idx].className = type;
+}
+
+function setPlotPixel(x, y, type="pixel") {
+  const idx = y * cols + x;
+  if (plotCells[idx]) plotCells[idx].className = type;
+}
+
+// Draw "MONEY" (example using M only)
+const M = [[0,0],[0,1],[0,2],[0,3],[0,4],[0,5],[0,6],[1,1],[2,2],[3,1],[4,0],[4,1],[4,2],[4,3],[4,4],[4,5],[4,6]];
+const O = [[7,0],[8,0],[9,0],[7,6],[8,6],[9,6],[6,1],[6,2],[6,3],[6,4],[6,5],[10,1],[10,2],[10,3],[10,4],[10,5]];
+const N = [[12,0],[12,1],[12,2],[12,3],[12,4],[12,5],[12,6],[13,1],[14,2],[15,3],[16,4],[16,0],[16,1],[16,2],[16,3],[16,5],[16,6]];
+const E = [[18,0],[19,0],[20,0],[21,0],[22,0],[18,1],[18,2],[18,3],[19,3],[20,3],[18,4],[18,5],[18,6],[19,6],[20,6],[21,6],[22,6]];
+const Y = [[24,0],[24,1],[24,2],[25,3],[27,3],[28,0],[28,1],[28,2],[26,4],[26,5],[26,6]];
+[...M, ...O, ...N, ...E, ...Y].forEach(([x, y]) => setMoneyPixel(x, y));
+
+// Plot simulation
+let prices = new Array(cols).fill(6);
+
+
+// function drawPrice() {
+//   // 渲染 trail
+//   trail.forEach(({ x, y, dir }) => {
+//     const type = dir === "up" ? "trail-up" :
+//                  dir === "down" ? "trail-down" : "trail";
+//     setPlotPixel(x, y, type);
+//   });
+
+//   // 渲染主价格曲线
+//   for (let i = 0; i < prices.length; i++) {
+//     const y = prices[i];
+//     const type = i === prices.length - 1 ? "highlight" : "pixel";
+//     setPlotPixel(i, y, type);
+//   }
+// }
+
+
+function drawPrice() {
+  // 渲染 trail
+  trail.forEach(({ x, y }) => {
+    setPlotPixel(x, y, "trail");
+  });
+
+  // 渲染主价格线
+  for (let i = 0; i < prices.length; i++) {
+    const y = prices[i];
+    const type = i === prices.length - 1 ? "highlight" : "pixel";
+    setPlotPixel(i, y, type);
+  }
+
+  // 更新 trail 生命周期并过滤
+  // trail = trail
+  //   .map(p => ({ ...p, life: p.life - 1 }))
+  //   .filter(p => p.life > 0);
+
+}
+
+
+
+
+function clearPrice() {
+  for (let i = 0; i < cols; i++) {
+    for (let y = 0; y < plotRows; y++) {
+      const idx = y * cols + i;
+      if (plotCells[idx]) plotCells[idx].className = "off";
+    }
+  }
+}
+
+// function updatePrice() {
+//   prices.shift(); // 移除最旧的价格
+//   const last = prices[prices.length - 1];
+//   const change = [-2, -1, 0, 1, 2][Math.floor(Math.random() * 5)];
+//   let next = Math.max(1, Math.min(plotRows - 2, last + change));
+
+//   // 如果变化为 ±2，添加中间路径点
+//   if (Math.abs(change) === 2) {
+//     const mid = Math.max(1, Math.min(plotRows - 2, last + Math.sign(change)));
+//     trail.push({ x: cols - 1, y: mid, life: 2 }); // 记录中间点的位置
+//   }
+
+function updatePrice() {
+  // 所有 trail 点左移一列
+  trail = trail
+    .map(p => ({ x: p.x - 1, y: p.y }))
+    .filter(p => p.x >= 0); // 移除掉已经超出左边的点
+
+  prices.shift(); // 移除最左边价格
+  const last = prices[prices.length - 1];
+  const change = [-2, -1, 0, 1, 2][Math.floor(Math.random() * 5)];
+  let next = Math.max(1, Math.min(plotRows - 2, last + change));
+
+  // 如果跨两格，插入中间路径点（放在最右边）
+  if (Math.abs(change) === 2) {
+    const mid = Math.max(1, Math.min(plotRows - 2, last + Math.sign(change)));
+    trail.push({ x: cols - 1, y: mid });
+  }
+
+  prices.push(next); // 加入新价格点
+}
+
+// function updatePrice() {
+//   // 所有 trail 点左移一列
+//   trail = trail
+//     .map(p => ({ ...p, x: p.x - 1 }))
+//     .filter(p => p.x >= 0); // 移除已经出界的点
+
+//   prices.shift(); // 移除最旧价格
+//   const last = prices[prices.length - 1];
+//   const change = [-2, -1, 0, 1, 2][Math.floor(Math.random() * 5)];
+//   let next = Math.max(1, Math.min(plotRows - 2, last + change));
+
+//   if (Math.abs(change) === 2) {
+//     const mid = Math.max(1, Math.min(plotRows - 2, last + Math.sign(change)));
+//     const dir = change > 0 ? "up" : "down";
+//     trail.push({ x: cols - 1, y: mid, dir }); // 记录方向
+//   }
+
+//   prices.push(next);
+// }
+
+
+
+
+drawPrice();
+setInterval(() => {
+  clearPrice();
+  updatePrice();
+  drawPrice();
+}, 1500); // 每1秒更新一次价格
+
+  </script>
+</body>
+</html>
